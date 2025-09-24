@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Surron Configurator</title>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylon.glTF2FileLoader.js"></script>
+    <style>
+        #uiPanel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.9);
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .colorInput { width: 60px; }
+    </style>
+</head>
+<body>
+<canvas id="renderCanvas" style="width:100%; height:100vh;"></canvas>
+
+<div id="uiPanel">
+    <h3>Bike Configurator</h3>
+    <div>
+        Frame: <input type="color" class="colorInput" id="frameColor" value="#1a1a1a">
+    </div>
+    <div>
+        Front Rim: <input type="color" class="colorInput" id="rimFrontColor" value="#ffffff">
+    </div>
+    <div>
+        Rear Rim: <input type="color" class="colorInput" id="rimRearColor" value="#ffffff">
+    </div>
+    <div>
+        Seat: <button id="toggleSeat">Toggle Seat</button>
+    </div>
+</div>
+
+<script>
+const canvas = document.getElementById("renderCanvas");
+const engine = new BABYLON.Engine(canvas, true);
+let scene;
+let bike;
+let seatVisible = true;
+
+const parts = {
+    frame: 0x1a1a1a,
+    rim_front: 0xffffff,
+    rim_rear: 0xffffff,
+    tire_front: 0x222222,
+    tire_rear: 0x222222,
+    battery: 0x333333,
+    seat: 0x880000
+};
+
+function createScene() {
+    scene = new BABYLON.Scene(engine);
+    scene.clearColor = new BABYLON.Color3(0.9, 0.9, 0.9);
+
+    const camera = new BABYLON.ArcRotateCamera("cam", Math.PI/2, Math.PI/2.5, 5, new BABYLON.Vector3(0,1,0), scene);
+    camera.attachControl(canvas, true);
+
+    const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0,1,0), scene);
+    light.intensity = 1.0;
+
+    BABYLON.SceneLoader.ImportMesh("", "./", "surron.glb", scene, function (meshes) {
+        bike = new BABYLON.TransformNode("bikeRoot", scene);
+        meshes.forEach(m => { m.parent = bike; });
+
+        // Apply default colors
+        for (const [name, color] of Object.entries(parts)) {
+            setBikeColor(name, color);
+        }
+    });
+
+    return scene;
+}
+
+scene = createScene();
+
+engine.runRenderLoop(function() { scene.render(); });
+window.addEventListener("resize", function() { engine.resize(); });
+
+// Helper to set color
+function setBikeColor(partName, hexColor) {
+    const part = scene.getMeshByName(partName);
+    if (part) {
+        part.material = part.material.clone();
+        part.material.albedoColor = BABYLON.Color3.FromHexString("#" + hexColor.toString(16));
+    }
+}
+
+// Color pickers
+document.getElementById("frameColor").addEventListener("input", (e) => {
+    const hex = parseInt(e.target.value.replace("#",""),16);
+    setBikeColor("frame", hex);
+});
+document.getElementById("rimFrontColor").addEventListener("input", (e) => {
+    const hex = parseInt(e.target.value.replace("#",""),16);
+    setBikeColor("rim_front", hex);
+});
+document.getElementById("rimRearColor").addEventListener("input", (e) => {
+    const hex = parseInt(e.target.value.replace("#",""),16);
+    setBikeColor("rim_rear", hex);
+});
+
+// Toggle seat visibility
+document.getElementById("toggleSeat").addEventListener("click", () => {
+    const seat = scene.getMeshByName("seat");
+    if (seat) {
+        seatVisible = !seatVisible;
+        seat.isVisible = seatVisible;
+    }
+});
+</script>
+</body>
+</html>
